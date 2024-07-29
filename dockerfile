@@ -1,27 +1,54 @@
+# # Используем официальный образ golang в качестве базового
+# FROM golang:1.20-alpine
 
-FROM golang:1.20 AS build
+# # Устанавливаем рабочую директорию внутри контейнера
+# WORKDIR /app
 
-# Установим рабочий каталог внутри контейнера
+# # Копируем модульные файлы Go в рабочую директорию
+# COPY go.mod go.sum ./
+
+# # Загружаем зависимости
+# RUN go mod download
+
+# # Копируем все файлы проекта в рабочую директорию
+# COPY . .
+
+# # Собираем Go приложение
+# RUN go build -o blog .
+
+# # Определяем порт, который будет использоваться
+# EXPOSE 3001
+
+# # Команда для запуска миграций и приложения
+# CMD  ./blog
+# Используем официальный образ golang в качестве базового
+FROM golang:1.20-alpine
+
+# Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /app
 
-# Скопируем файлы go.mod и go.sum и установим зависимости
+# Копируем модульные файлы Go в рабочую директорию
 COPY go.mod go.sum ./
+
+# Загружаем зависимости
 RUN go mod download
 
-# Скопируем остальные файлы исходного кода
+# Копируем все файлы проекта в рабочую директорию
 COPY . .
 
-# Соберем бинарный файл приложения
+# Собираем Go приложение
 RUN go build -o blog .
 
-# Используем минимальный образ для запуска собранного приложения
-FROM alpine:latest
+# Устанавливаем утилиту migrate с поддержкой PostgreSQL
+RUN apk add --no-cache ca-certificates && \
+    go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
-# Установим сертификаты
-RUN apk --no-cache add ca-certificates
+# Копируем миграции в контейнер
+COPY ./migration /app/migration
 
-# Скопируем собранный бинарный файл из предыдущего этапа
-COPY --from=build /app/blog /blog
+# Определяем порт, который будет использоваться
+EXPOSE 3001
 
-# Определим команду запуска контейнера
-CMD ["/blog"]
+# Команда по умолчанию для выполнения миграций и запуска приложения
+CMD migrate -verbose -path /app/migration -database 'postgres://postgres:postgres@db:5432/postgres?sslmode=disable' up && ./blog
+#migrate to RUN 

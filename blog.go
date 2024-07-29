@@ -11,6 +11,9 @@ import (
 	"strings"
 	"sync"
 
+	// "github.com/golang-migrate/migrate/v4"
+	// "github.com/golang-migrate/migrate/v4/database/postgres"
+
 	_ "github.com/lib/pq"
 )
 
@@ -42,19 +45,31 @@ var db *sql.DB
 
 func main() {
 	var err error
-	db, err = sql.Open("postgres", "user=postgres  password=1963ctvmz dbname=db_id sslmode=disable")
+	db, err = sql.Open("postgres", "postgres://postgres:postgres@db:5432/postgres?sslmode=disable")
 	if err != nil {
 		log.Fatal("Error connecting to the database:", err)
 	}
+	fmt.Println("hello mtvy")
 	defer db.Close()
 	// http.Handle("/", http.FileServer(http.Dir("./static")))
 
-	http.HandleFunc("/blog/list/", blogListHandler)
-	http.HandleFunc("/blog/id/", blogIDHandler)
-	http.HandleFunc("/blog/id/counter", blogCounterHandler)
+	mux := http.NewServeMux()
+
+	// http.HandleFunc("/blog/list/", blogListHandler)
+	// http.HandleFunc("/blog/id/", blogIDHandler)
+	// http.HandleFunc("/blog/id/counter", blogCounterHandler)
+	mux.HandleFunc("/blog/list/", blogListHandler)
+	mux.HandleFunc("/blog/id/", blogIDHandler)
+	mux.HandleFunc("/blog/id/counter", blogCounterHandler)
+
+	go Init(":8082")
+
+	handler := MetricsMiddleware(mux)
+
+	// Start the server
 
 	log.Println("Server is listening on port 3001...")
-	log.Fatal(http.ListenAndServe(":3001", nil))
+	log.Fatal(http.ListenAndServe(":3001", handler))
 }
 
 func blogCounterHandler(w http.ResponseWriter, r *http.Request) {
