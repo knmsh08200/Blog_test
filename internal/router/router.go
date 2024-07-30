@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"database/sql"
@@ -11,8 +11,19 @@ import (
 	"strings"
 	"sync"
 
-	_ "github.com/lib/pq"
+	"github.com/gorilla/mux"
 )
+
+// NewRouter creates and returns a new router.
+func NewRouter() *mux.Router {
+	mux := mux.NewRouter()
+
+	mux.HandleFunc("/blog/list/", blogListHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
+	mux.HandleFunc("/blog/id/", blogIDHandler).Methods(http.MethodGet, http.MethodPost, http.MethodDelete)
+	mux.HandleFunc("/blog/id/counter", blogCounterHandler).Methods(http.MethodGet)
+
+	return mux
+}
 
 type List struct {
 	ID      int    `json:"id"`
@@ -39,45 +50,6 @@ var (
 )
 
 var db *sql.DB
-
-// выносим в cmd/main.go
-func main() {
-	//
-	// ко всему относится - подредачить название
-	// (должно быть читаемо но без лишних слов)
-	//
-
-	// init observability (metrics) (отдельный пакет в internal)
-	go Init(":8082")
-
-	// init db provider (отдельный пакет в internal)
-	var err error
-	db, err = sql.Open("postgres", "postgres://postgres:postgres@db:5432/postgres?sslmode=disable")
-	if err != nil {
-		log.Fatal("Error connecting to the database:", err)
-	}
-	fmt.Println("hello mtvy")
-
-	// убрать в .gracefull shutdown. (прогуглить) then (что-то context) (context.WithTimeout, WithCancel и тд)
-	// добавить context.WithTimeout на запросы в бд (убрать в env значение) (viper для чтения конфигов)
-	defer db.Close()
-
-	// init route handler (пусть пока лежит в файле internal/route.go)
-	// http.Handle("/", http.FileServer(http.Dir("./static")))
-	mux := http.NewServeMux()
-	// http.HandleFunc("/blog/list/", blogListHandler)
-	// http.HandleFunc("/blog/id/", blogIDHandler)
-	// http.HandleFunc("/blog/id/counter", blogCounterHandler)
-	mux.HandleFunc("/blog/list/", blogListHandler)
-	mux.HandleFunc("/blog/id/", blogIDHandler)
-	mux.HandleFunc("/blog/id/counter", blogCounterHandler)
-	handler := MetricsMiddleware(mux)
-
-	// Start the server
-	log.Println("Server is listening on port 3001...")
-	// не забывай обрабатывать ошибки --->
-	log.Fatal(http.ListenAndServe(":3001", handler))
-}
 
 func blogCounterHandler(w http.ResponseWriter, r *http.Request) {
 	// Получаем параметры из URL-запроса

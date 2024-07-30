@@ -3,6 +3,7 @@ module github.com/knmsh08200/Blog_test
 go 1.21
 
 require (
+	github.com/gorilla/mux v1.8.1
 	github.com/lib/pq v1.10.9
 	github.com/prometheus/client_golang v1.19.1
 // github.com/golang-migrate/migrate/v4

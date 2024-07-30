@@ -1,13 +1,11 @@
-package main
+package metrics
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -39,19 +37,6 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(statusCode int) {
 	rw.statusCode = statusCode
 	rw.ResponseWriter.WriteHeader(statusCode)
-}
-
-func Init(addr string) {
-	prometheus.MustRegister(
-		reqCounter,
-		requestDuration,
-	)
-
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-	if err := http.ListenAndServe(addr, mux); err != nil {
-		log.Printf("Error:%v", err)
-	}
 }
 
 // Пример использования функции RequestDuration в обработчике HTTP-запросов
