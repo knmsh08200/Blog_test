@@ -1,35 +1,33 @@
-package storage
+package db
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
-	"os"
 
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 )
 
 var (
-	DB *sql.DB
+	Db *sql.DB
 )
 
-func InitDB() error {
+func InitDB(dbUrl string) error {
 	var err error
-	dbUrl := os.Getenv("DATABASE_URL")
-	if dbUrl == "" {
-		log.Fatal("DATABASE_URL environment variable is not set")
-	}
+	// НЕ ВИЖУ СМЫСЛА В ЭТОЙ ПРОВЕРКИ, ОНА ДЕЛАЕТСЯ В MAIN.GO
+	// if dbUrl == "" {
+	// 	log.Fatal("DATABASE_URL environment variable is not set")
+	// }
 
-	DB, err = sql.Open("postgres", "postgres://postgres:postgres@db:5432/postgres?sslmode=disable")
+	Db, err = sql.Open("postgres", dbUrl)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "InitDB Open")
 	}
-	fmt.Printf("DJJJJJJJJJ,%v", err)
 	return nil
 }
 
 func Close() {
-	if err := DB.Close(); err != nil {
-		log.Println("Error closing database connection:", err)
+	if err := Db.Close(); err != nil {
+		log.Println("Error closing database connection:", errors.Wrap(err, "Close"))
 	}
 }

@@ -1,7 +1,6 @@
 package router
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,9 +11,10 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
+	"github.com/knmsh08200/Blog_test/internal/db"
+	"github.com/knmsh08200/Blog_test/internal/metrics"
 )
 
-// NewRouter creates and returns a new router.
 func NewRouter() *mux.Router {
 	mux := mux.NewRouter()
 
@@ -23,6 +23,12 @@ func NewRouter() *mux.Router {
 	mux.HandleFunc("/blog/id/counter", blogCounterHandler).Methods(http.MethodGet)
 
 	return mux
+}
+
+func NewHandler() http.Handler {
+	mux := NewRouter()
+	handler := metrics.MetricsMiddleware(mux)
+	return handler
 }
 
 type List struct {
@@ -49,8 +55,6 @@ var (
 	mutex = &sync.Mutex{}
 )
 
-var db *sql.DB
-
 func blogCounterHandler(w http.ResponseWriter, r *http.Request) {
 	// Получаем параметры из URL-запроса
 	params := r.URL.Query()
@@ -70,7 +74,7 @@ func blogCounterHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Запрос для подсчета количества статей пользователя
 	var articlesCount int
-	err = db.QueryRow("SELECT COUNT(*) FROM lists WHERE user_id=$1", userID).Scan(&articlesCount)
+	err = db.Db.QueryRow("SELECT COUNT(*) FROM lists WHERE user_id=$1", userID).Scan(&articlesCount)
 	if err != nil {
 		http.Error(w, "Error fetching user articles count", http.StatusInternalServerError)
 		return
@@ -116,7 +120,7 @@ func handleGetList(w http.ResponseWriter) {
 	// w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	var lists []List
-	rows, err := db.Query("SELECT id,user_id,title,content FROM lists")
+	rows, err := db.Db.Query("SELECT id,user_id,title,content FROM lists")
 	if err != nil {
 		log.Printf("Error querying database: %v", err)
 		http.Error(w, "Error fetching data", http.StatusInternalServerError)
@@ -166,7 +170,7 @@ func handlePostList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var userExists bool
-	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id=$1)", newList.USER_ID).Scan(&userExists)
+	err = db.Db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id=$1)", newList.USER_ID).Scan(&userExists)
 	if err != nil {
 		http.Error(w, "Error checking user existence", http.StatusInternalServerError)
 		return
@@ -176,7 +180,7 @@ func handlePostList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "User not found", http.StatusBadRequest)
 		return
 	}
-	err = db.QueryRow("INSERT INTO lists (user_id,title, content) VALUES ($1, $2, $3) RETURNING id", newList.USER_ID, newList.Title, newList.Content).Scan(&newList.ID)
+	err = db.Db.QueryRow("INSERT INTO lists (user_id,title, content) VALUES ($1, $2, $3) RETURNING id", newList.USER_ID, newList.Title, newList.Content).Scan(&newList.ID)
 	if err != nil {
 		log.Printf("Error inserting data: %v", err)
 		http.Error(w, "Error inserting data", http.StatusInternalServerError)
@@ -201,7 +205,7 @@ func handleDelList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := db.Exec("DELETE FROM lists WHERE id = $1", id)
+	result, err := db.Db.Exec("DELETE FROM lists WHERE id = $1", id)
 	if err != nil {
 		log.Printf("Error deleting data: %v", err)
 		http.Error(w, "Error deleting data", http.StatusInternalServerError)
@@ -253,7 +257,7 @@ func handleGetID(w http.ResponseWriter) {
 	// w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	var ids []ID
-	rows, err := db.Query("SELECT id, name FROM users")
+	rows, err := db.Db.Query("SELECT id, name FROM users")
 	if err != nil {
 		log.Printf("Error querying database: %v", err)
 		http.Error(w, "Error fetching data", http.StatusInternalServerError)
@@ -299,7 +303,7 @@ func handlePostID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = db.QueryRow("INSERT INTO users (name) VALUES ($1) RETURNING id", newID.Name).Scan(&newID.ID)
+	err = db.Db.QueryRow("INSERT INTO users (name) VALUES ($1) RETURNING id", newID.Name).Scan(&newID.ID)
 	if err != nil {
 		log.Printf("Error inserting data: %v", err)
 		http.Error(w, "Error inserting data", http.StatusInternalServerError)
@@ -329,7 +333,7 @@ func handleDelID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := db.Exec("DELETE FROM users WHERE id = $1", id)
+	result, err := db.Db.Exec("DELETE FROM users WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Error deleting data", http.StatusInternalServerError)
 		return
