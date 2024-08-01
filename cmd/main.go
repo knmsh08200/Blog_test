@@ -29,14 +29,14 @@ func main() {
 	signal.Notify(stop, os.Interrupt)
 
 	// Initialize observability (metrics)
-	go metrics.Init(":8082")
+	go metrics.InitMetrics(":8082")
 
 	dbUrl := os.Getenv("DATABASE_URL")
 	if dbUrl == "" {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 	// Initialize DB PROVIDER
-	if err := db.InitDB(dbUrl); err != nil {
+	if err := db.InitDB(ctxWithCancel, dbUrl); err != nil {
 		log.Fatal("Error connecting to the database:", err)
 	}
 	defer db.Close()

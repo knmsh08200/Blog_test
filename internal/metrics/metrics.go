@@ -3,16 +3,36 @@ package metrics
 import (
 	"log"
 	"net/http"
+	"strconv"
 
-	"github.com/knmsh08200/Blog_test/internal/router"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func Init(addr string) {
+const (
+	ProcItemStatusFailed = "failed"
+	ProcItemStatusDone   = "done"
+)
+
+var (
+	ReqCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "myapp",
+		Subsystem: "api",
+		Name:      "http_total_request",
+		Help:      "Общее количесвто HTTP-запросов ",
+	}, []string{"status"})
+	RequestDuration = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Duration of HTTP requests in seconds.",
+			Buckets: []float64{0.01, 0.05}, // 90-й и 95-й перцентили
+		})
+)
+
+func InitMetrics(addr string) {
 	prometheus.MustRegister(
-		router.ReqCounter,
-		router.RequestDuration,
+		ReqCounter,
+		RequestDuration,
 	)
 
 	mux := http.NewServeMux()
@@ -21,4 +41,13 @@ func Init(addr string) {
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Printf("Error:%v", err)
 	}
+}
+
+func IncrementRequestCounter(status int) {
+	ReqCounter.WithLabelValues(strconv.Itoa(status)).Inc()
+}
+
+// ObserveRequestDuration наблюдает за продолжительностью запроса
+func ObserveRequestDuration(duration float64) {
+	RequestDuration.Observe(duration)
 }

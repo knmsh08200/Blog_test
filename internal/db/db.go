@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"log"
 
@@ -12,7 +13,7 @@ var (
 	Db *sql.DB
 )
 
-func InitDB(dbUrl string) error {
+func InitDB(Func context.Context, dbUrl string) error {
 	var err error
 	// НЕ ВИЖУ СМЫСЛА В ЭТОЙ ПРОВЕРКИ, ОНА ДЕЛАЕТСЯ В MAIN.GO
 	// if dbUrl == "" {
