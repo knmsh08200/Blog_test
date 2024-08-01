@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/knmsh08200/Blog_test/internal/db"
-	"github.com/knmsh08200/Blog_test/internal/metrics"
+	"github.com/knmsh08200/Blog_test/internal/model"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 func NewRouter() *mux.Router {
@@ -27,7 +28,7 @@ func NewRouter() *mux.Router {
 
 func NewHandler() http.Handler {
 	mux := NewRouter()
-	handler := metrics.MetricsMiddleware(mux)
+	handler := MetricsMiddleware(mux)
 	return handler
 }
 
@@ -42,18 +43,6 @@ type ID struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
-
-var (
-	// lists = []List{
-	// 	{ID: 1, Title: "First Blog", Content: "This is the first blog post."},
-	// 	{ID: 2, Title: "Second Blog", Content: "This is the second blog post."},
-	// }
-	// ids = []ID{
-	// 	{ID: 1, Name: "Author One"},
-	// 	{ID: 2, Name: "Author Two"},
-	// }
-	mutex = &sync.Mutex{}
-)
 
 func blogCounterHandler(w http.ResponseWriter, r *http.Request) {
 	// Получаем параметры из URL-запроса
@@ -217,8 +206,6 @@ func handleDelList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Println(rowsAffected)
-	mutex.Lock()
-	defer mutex.Unlock()
 
 	// for i, list := range lists {
 	// 	if list.ID == id {
@@ -256,8 +243,8 @@ func handleGetID(w http.ResponseWriter) {
 	// w.Header().Set("Access-Control-Allow-Origin", "*")
 	// w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	var ids []ID
-	rows, err := db.Db.Query("SELECT id, name FROM users")
+	var ids []model.ID
+	rows, err := db.Db.Query("SELECT id,name FROM users")
 	if err != nil {
 		log.Printf("Error querying database: %v", err)
 		http.Error(w, "Error fetching data", http.StatusInternalServerError)
@@ -265,7 +252,7 @@ func handleGetID(w http.ResponseWriter) {
 	}
 
 	for rows.Next() {
-		var id ID
+		var id model.ID
 		if err := rows.Scan(&id.ID, &id.Name); err != nil {
 
 			http.Error(w, "Error scanning data", http.StatusInternalServerError)
@@ -276,7 +263,9 @@ func handleGetID(w http.ResponseWriter) {
 
 	defer rows.Close()
 
-	jsonData, err := json.Marshal(ids)
+	idResponse := model.ConvertDBtoResponse(ids)
+
+	jsonData, err := json.Marshal(idResponse)
 	if err != nil {
 		http.Error(w, "Error marshalling JSON", http.StatusInternalServerError)
 		return
@@ -297,7 +286,7 @@ func handlePostID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newID ID
+	var newID model.ID
 	if err := json.Unmarshal(body, &newID); err != nil {
 		http.Error(w, "Error unmarshalling JSON", http.StatusBadRequest)
 		return
@@ -360,4 +349,60 @@ func handleDelID(w http.ResponseWriter, r *http.Request) {
 
 	// http.Error(w, "ID not found", http.StatusNotFound) ИНТЕРЕССССС
 
+}
+
+// Middleware part
+const (
+	ProcItemStatusFailed = "failed"
+	ProcItemStatusDone   = "done"
+)
+
+var (
+	ReqCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "myapp",
+		Subsystem: "api",
+		Name:      "http_total_request",
+		Help:      "Общее количесвто HTTP-запросов ",
+	}, []string{"status"})
+	RequestDuration = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Duration of HTTP requests in seconds.",
+			Buckets: []float64{0.01, 0.05}, // 90-й и 95-й перцентили
+		})
+)
+
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+	// size       int
+}
+
+func (rw *responseWriter) WriteHeader(statusCode int) {
+	rw.statusCode = statusCode
+	rw.ResponseWriter.WriteHeader(statusCode)
+}
+
+// Пример использования функции RequestDuration в обработчике HTTP-запросов
+func MetricsMiddleware(next http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Record the start time
+		start := time.Now()
+
+		// Create a response writer that captures the status code
+		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+
+		// Call the next handler
+		next.ServeHTTP(rw, r)
+
+		// Record metrics
+		duration := time.Since(start).Seconds()
+		// path := r.URL.Path
+		// method := r.Method
+		status := rw.statusCode
+
+		ReqCounter.WithLabelValues(strconv.Itoa(status)).Inc()
+		RequestDuration.Observe(duration)
+	})
 }

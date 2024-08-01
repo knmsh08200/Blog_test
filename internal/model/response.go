@@ -10,6 +10,5 @@ type ListResponse struct {
 }
 
 type IDResponse struct {
-	ID   int    `json:"id"`
 	Name string `json:"name"`
 }

@@ -22,3 +22,5 @@ CREATE TABLE posts (
         FOREIGN KEY(user_id) 
         REFERENCES users(id)
 );
+
+INSERT INTO users (id,name) VALUES (1,'IVANOV');
