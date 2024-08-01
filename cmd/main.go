@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/knmsh08200/Blog_test/internal/db"
 	"github.com/knmsh08200/Blog_test/internal/metrics"
@@ -11,6 +15,19 @@ import (
 )
 
 func main() {
+
+	ctx := context.Background()
+
+	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
+
+	defer func() {
+		fmt.Println("Main Defer: canceling context")
+		cancelFunc()
+	}()
+	// обработка сигналов остановки
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
 	// Initialize observability (metrics)
 	go metrics.Init(":8082")
 
@@ -26,10 +43,28 @@ func main() {
 
 	// Initialize route handler
 	handler := router.NewHandler()
-
-	// Start the server
-	log.Println("Server is listening on port 3001...")
-	if err := http.ListenAndServe(":3001", handler); err != nil {
-		log.Fatalf("Server failed to start,%v", err)
+	server := &http.Server{
+		Addr:    ":3001",
+		Handler: handler,
 	}
+	go func() {
+		// Start the server
+		log.Println("Server is listening on port 3001...")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server failed to start,%v", err)
+		}
+	}()
+
+	<-stop
+
+	// Создаем контекст с таймаутом для корректного завершения работы сервера
+	ctxShutdown, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelShutdown()
+
+	// Завершаем работу сервера
+	if err := server.Shutdown(ctxShutdown); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server gracefully stopped")
 }
