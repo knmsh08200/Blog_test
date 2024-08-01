@@ -29,7 +29,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt)
 
 	// Initialize observability (metrics)
-	go metrics.InitMetrics(":8082")
+	go metrics.InitProvider(":8082")
 
 	dbUrl := os.Getenv("DATABASE_URL")
 	if dbUrl == "" {

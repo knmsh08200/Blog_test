@@ -29,7 +29,7 @@ var (
 		})
 )
 
-func InitMetrics(addr string) {
+func InitProvider(addr string) {
 	prometheus.MustRegister(
 		ReqCounter,
 		RequestDuration,
