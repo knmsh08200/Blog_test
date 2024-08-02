@@ -13,6 +13,7 @@ import (
 	"github.com/knmsh08200/Blog_test/internal/db"
 	"github.com/knmsh08200/Blog_test/internal/middleware"
 	"github.com/knmsh08200/Blog_test/internal/model"
+	"github.com/knmsh08200/Blog_test/internal/service"
 )
 
 func NewRouter() *mux.Router {
@@ -183,39 +184,11 @@ func handlePostList(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDelList(w http.ResponseWriter, r *http.Request) {
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
-	// w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	idStr := strings.TrimPrefix(r.URL.Path, "/blog/list/")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
+	// получить blog id из request
 
-	result, err := db.Db.Exec("DELETE FROM lists WHERE id = $1", id)
-	if err != nil {
-		log.Printf("Error deleting data: %v", err)
-		http.Error(w, "Error deleting data", http.StatusInternalServerError)
-		return
-	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		http.Error(w, "Error getting rows affected", http.StatusInternalServerError)
-		return
-	}
-	fmt.Println(rowsAffected)
+	ids, err := service.BlogHandler.GetUsersByBlogID(ctx, id)
 
-	// for i, list := range lists {
-	// 	if list.ID == id {
-	// 		lists = append(lists[:i], lists[i+1:]...)
-	// 		w.WriteHeader(http.StatusOK)
-	// 		return
-	// 	}
-	// }
-
-	http.Error(w, "List not found", http.StatusNotFound)
-
+	w.Write()
 }
 
 func blogIDHandler(w http.ResponseWriter, r *http.Request) {
