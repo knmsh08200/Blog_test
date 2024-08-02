@@ -17,11 +17,12 @@ type IDsResponse struct {
 	IDs []IDResponse `json:"ids"`
 }
 
-func ConvertDBtoResponse(ids []ID) IDsResponse {
-	var responses []IDResponse
+func ConvertDBtoResponse(ids []ID) *IDsResponse {
 
-	for _, id := range ids {
-		responses = append(responses, IDResponse{Name: id.Name})
+	responses := make([]IDResponse, len(ids))
+
+	for i, id := range ids {
+		responses[i] = IDResponse{Name: id.Name}
 	}
-	return IDsResponse{IDs: responses}
+	return &IDsResponse{IDs: responses}
 }
