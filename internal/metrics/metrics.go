@@ -43,7 +43,7 @@ func InitProvider(addr string) {
 	}
 }
 
-func IncrementRequestCounter(status int) {
+func IncRequestCounter(status int) {
 	ReqCounter.WithLabelValues(strconv.Itoa(status)).Inc()
 }
 

@@ -37,7 +37,7 @@ func MetricsMiddleware(next http.Handler) http.Handler {
 		// method := r.Method
 		status := rw.statusCode
 
-		metrics.IncrementRequestCounter(status)
+		metrics.IncRequestCounter(status)
 		metrics.ObserveRequestDuration(duration)
 	})
 }
