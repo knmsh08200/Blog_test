@@ -9,7 +9,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/knmsh08200/Blog_test/internal/blog"
 	"github.com/knmsh08200/Blog_test/internal/db"
+	"github.com/knmsh08200/Blog_test/internal/handlers"
 	"github.com/knmsh08200/Blog_test/internal/metrics"
 	"github.com/knmsh08200/Blog_test/internal/router"
 )
@@ -28,7 +30,6 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt)
 
-	// Initialize observability (metrics)
 	go metrics.InitProvider(":8082")
 
 	dbUrl := os.Getenv("DATABASE_URL")
@@ -36,13 +37,23 @@ func main() {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 	// Initialize DB PROVIDER
-	if err := db.InitDB(ctxWithCancel, dbUrl); err != nil {
+	dbProvider, err := db.InitDB(ctxWithCancel, dbUrl)
+	if err != nil {
 		log.Fatal("Error connecting to the database:", err)
 	}
-	defer db.Close()
+
+	defer dbProvider.Close()
+
+	blogDBListProvider := blog.NewRep(dbProvider)
+	blogDBIDProvider := blog.NewRep(dbProvider)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	blogListProvider, blogIDProvider := handlers.NewBlogHandler(blogDBListProvider, blogDBIDProvider)
 
 	// Initialize route handler
-	handler := router.NewHandler()
+	handler := router.NewHandler(blogListProvider, blogIDProvider)
 	server := &http.Server{
 		Addr:    ":3001",
 		Handler: handler,

@@ -9,6 +9,14 @@ type List struct {
 }
 
 type ID struct {
-	Name string
 	ID   int
+	Name string
+}
+
+type FindList struct {
+	ID      int
+	Name    string
+	UserID  int
+	Title   string
+	Content string
 }

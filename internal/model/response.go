@@ -3,10 +3,14 @@ package model
 // здесь опишу переменные связанные с  ответом  на вопрос
 
 type ListResponse struct {
-	ID      int    `json:"id"`
-	UserID  int    `json:"user_id"`
-	Title   string `json:"title"`
-	Content string `json:"content"`
+	Title   string `json:"title,omitempty"`
+	Content string `json:"content,omitempty"`
+}
+
+type FindListResponse struct {
+	Name    string `json:"name"`
+	Title   string `json:"title,omitempty"`
+	Content string `json:"content,omitempty"`
 }
 
 type IDResponse struct {
@@ -17,12 +21,13 @@ type IDsResponse struct {
 	IDs []IDResponse `json:"ids"`
 }
 
-func ConvertDBtoResponse(ids []ID) *IDsResponse {
+type Meta struct {
+	Limit int `json:"limit"`
+	Page  int `json:"page"`
+	Total int `json:"total"`
+}
 
-	responses := make([]IDResponse, len(ids))
-
-	for i, id := range ids {
-		responses[i] = IDResponse{Name: id.Name}
-	}
-	return &IDsResponse{IDs: responses}
+type BlogResponse struct {
+	Meta  Meta           `json:"meta"`
+	Blogs []ListResponse `json:"blogs"`
 }

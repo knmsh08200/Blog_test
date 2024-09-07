@@ -6,9 +6,16 @@ import (
 	"github.com/knmsh08200/Blog_test/internal/model"
 )
 
-type Repository interface {
-	GetAllBlogs(ctx context.Context) ([]model.List, error)
+type ListRepository interface {
+	GetAllBlogs(ctx context.Context, limit, offset int) ([]model.ListResponse, model.Meta, error)
 	CreateBlog(ctx context.Context, list model.List) (int, error)
 	DeleteBlog(ctx context.Context, d int) (int64, error) // работа с бд
-	CounterUserBlog(ctx context.Context, userID int) (int, error)
+	FindBlog(ctx context.Context, title string) (model.FindList, error)
+	CounterUserBlog(userID int) (int, error)
+}
+
+type IDRepository interface {
+	GetAllId(ctx context.Context) ([]model.ID, error)
+	CreateID(ctx context.Context, list model.CreateID) (int, error)
+	DeleteID(ctx context.Context, d int) (int64, error) // работа с бд
 }
