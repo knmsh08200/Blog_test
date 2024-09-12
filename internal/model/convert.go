@@ -17,8 +17,7 @@ func ConvertListtoResponse(lists []List) []ListResponse {
 	for i, list := range lists {
 		responses[i] = ListResponse{
 
-			Title:   list.Title,
-			Content: list.Content,
+			Title: list.Title,
 		}
 	}
 
@@ -28,8 +27,7 @@ func ConvertListtoResponse(lists []List) []ListResponse {
 func ConvertFindListtoResponse(article FindList) FindListResponse {
 
 	return FindListResponse{
-		Name:    article.Name,
-		Title:   article.Title,
+		Id:      article.ID,
 		Content: article.Content,
 	}
 

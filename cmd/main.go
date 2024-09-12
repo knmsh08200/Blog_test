@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/knmsh08200/Blog_test/internal/blog"
+	"github.com/knmsh08200/Blog_test/internal/cashe"
 	"github.com/knmsh08200/Blog_test/internal/db"
 	"github.com/knmsh08200/Blog_test/internal/handlers"
 	"github.com/knmsh08200/Blog_test/internal/metrics"
@@ -41,19 +42,19 @@ func main() {
 	if err != nil {
 		log.Fatal("Error connecting to the database:", err)
 	}
-
 	defer dbProvider.Close()
 
 	blogDBListProvider := blog.NewRep(dbProvider)
-	blogDBIDProvider := blog.NewRep(dbProvider)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	blogListProvider, blogIDProvider := handlers.NewBlogHandler(blogDBListProvider, blogDBIDProvider)
+	timeToUpdate := 30 * time.Second
+	timeToDelete := 50 * time.Second
+	blogCashe := cashe.NewCashe(ctx, timeToUpdate, timeToDelete, blogDBListProvider)
+	blogCashe.StartCleaner()
+
+	blogListProvider := handlers.NewBlogHandler(blogCashe)
 
 	// Initialize route handler
-	handler := router.NewHandler(blogListProvider, blogIDProvider)
+	handler := router.NewHandler(blogListProvider)
 	server := &http.Server{
 		Addr:    ":3001",
 		Handler: handler,
@@ -76,6 +77,8 @@ func main() {
 	if err := server.Shutdown(ctxShutdown); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
+
+	blogCashe.Shutdown()
 
 	log.Println("Server gracefully stopped")
 }

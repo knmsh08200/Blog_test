@@ -1,14 +1,13 @@
 module github.com/knmsh08200/Blog_test
 
-go 1.21
+go 1.23
 
 require (
 	github.com/gorilla/mux v1.8.1
 	github.com/lib/pq v1.10.9
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.19.1
-// github.com/golang-migrate/migrate/v4
-// github.com/golang-migrate/migrate/v4/database/postgres
+
 )
 
 require (
