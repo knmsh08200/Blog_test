@@ -14,6 +14,7 @@ import (
 	"github.com/knmsh08200/Blog_test/internal/db"
 	"github.com/knmsh08200/Blog_test/internal/handlers"
 	"github.com/knmsh08200/Blog_test/internal/metrics"
+	"github.com/knmsh08200/Blog_test/internal/redis"
 	"github.com/knmsh08200/Blog_test/internal/router"
 )
 
@@ -44,7 +45,11 @@ func main() {
 	}
 	defer dbProvider.Close()
 
-	blogDBListProvider := blog.NewRep(dbProvider)
+	rdbProvider := redis.InitClient(ctx)
+	blogRDBProvider := redis.NewRep(rdbProvider)
+	blogRDBProvider.LoadProfanityWords(ctx, dbProvider)
+
+	blogDBListProvider := blog.NewRep(dbProvider, blogRDBProvider)
 
 	timeToUpdate := 30 * time.Second
 	timeToDelete := 50 * time.Second

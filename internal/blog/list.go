@@ -7,11 +7,13 @@ import (
 	"fmt"
 
 	"github.com/knmsh08200/Blog_test/internal/model"
+	"github.com/knmsh08200/Blog_test/internal/redis"
 	"github.com/pkg/errors"
 )
 
 type blogRepository struct {
-	db *sql.DB
+	db               *sql.DB
+	profanityChecker redis.ProfanityChecker
 }
 
 //	func NewRep(rep Repository) (*blogRepository, error) {
@@ -20,8 +22,11 @@ type blogRepository struct {
 //		}
 //		return nil, errors.New("provided rep failed")
 //	}
-func NewRep(db *sql.DB) *blogRepository {
-	return &blogRepository{db: db}
+func NewRep(db *sql.DB, checker redis.ProfanityChecker) *blogRepository {
+	return &blogRepository{
+		db:               db,
+		profanityChecker: checker,
+	}
 }
 
 func (r *blogRepository) GetAllBlogs(ctx context.Context, limit, offset int) ([]model.ListResponse, model.Meta, error) {
@@ -97,8 +102,3 @@ func (r *blogRepository) FindBlog(ctx context.Context, id int) (model.FindList, 
 
 	return list, nil
 }
-
-// // не знаю нужно или нет, думаю надо, так как ...
-// type userDB struct {
-// 	DB *sql.DB
-// }

@@ -62,7 +62,7 @@ func (h *BlogHandler) handleFindList(ctx context.Context, w http.ResponseWriter,
 	}
 
 	article, err := h.Service.FindBlog(ctx, id)
-	log.Println("hello 3")
+
 	if err != nil {
 		log.Printf("Error fetching blogs: %v", err)
 		http.Error(w, "Error fetching data", http.StatusInternalServerError)

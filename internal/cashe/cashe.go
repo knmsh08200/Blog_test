@@ -102,20 +102,44 @@ func (b *BlogCashe) CounterUserBlog(userID int) (int, error) {
 func (b *BlogCashe) FindBlog(ctx context.Context, id int) (model.FindList, error) {
 	start := time.Now()
 	blog, err := b.getBlogByID(id)
-	if err != nil || time.Since(blog.updated) > b.timeToUpdate {
+
+	resultchan := make(chan model.FindList)
+	errorchan := make(chan error)
+
+	if err != nil || time.Since(blog.updated) <= b.timeToUpdate {
+		metrics.ObserveCacheHit(time.Since(start).Seconds())
+		log.Printf("Cashe hit for ID:%d ", id)
+		return blog.data, nil
+
+	}
+	resultchan = make(chan model.FindList)
+	errorchan = make(chan error)
+
+	go func() {
 		fetchedBlog, err := b.blogProvider.FindBlog(ctx, id)
 		if err != nil {
-			log.Printf("Error fetching data from DB for ID:%d, %v", id, err)
-			return model.FindList{}, err // wrap -READABLE
+
+			errorchan <- err
+			return
 		}
+		resultchan <- fetchedBlog
+	}()
+	select {
+	case fetchedBlog := <-resultchan:
+
 		b.set(id, fetchedBlog)
 		metrics.ObserveCacheMiss(time.Since(start).Seconds())
 		log.Printf("Fetched blog from DB and updated cashe for ID:%d", id)
 		return fetchedBlog, nil
+	case err := <-errorchan:
+		log.Printf("Error fetching data from DB for ID:%d, %v", id, err)
+		return model.FindList{}, err // wrap -READABLE
+	case <-ctx.Done():
+		// Обрабатываем отмену контекста, если операция заняла слишком много времени
+		log.Printf("Operation timed out for ID:%d", id)
+		return model.FindList{}, ctx.Err()
 	}
-	metrics.ObserveCacheHit(time.Since(start).Seconds())
-	log.Printf("Cashe hit for ID:%d ", id)
-	return blog.data, nil
+
 }
 
 // worker
