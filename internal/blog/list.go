@@ -7,11 +7,13 @@ import (
 	"fmt"
 
 	"github.com/knmsh08200/Blog_test/internal/model"
+	"github.com/knmsh08200/Blog_test/internal/redis"
 	"github.com/pkg/errors"
 )
 
 type blogRepository struct {
-	db *sql.DB
+	db               *sql.DB
+	profanityChecker redis.ProfanityChecker
 }
 
 //	func NewRep(rep Repository) (*blogRepository, error) {
@@ -20,8 +22,11 @@ type blogRepository struct {
 //		}
 //		return nil, errors.New("provided rep failed")
 //	}
-func NewRep(db *sql.DB) *blogRepository {
-	return &blogRepository{db: db}
+func NewRep(db *sql.DB, checker redis.ProfanityChecker) *blogRepository {
+	return &blogRepository{
+		db:               db,
+		profanityChecker: checker,
+	}
 }
 
 func (r *blogRepository) GetAllBlogs(ctx context.Context, limit, offset int) ([]model.ListResponse, model.Meta, error) {
@@ -33,7 +38,7 @@ func (r *blogRepository) GetAllBlogs(ctx context.Context, limit, offset int) ([]
 		return nil, model.Meta{}, errors.Wrap(err, "GetAllBlogs  QueryRowContext")
 	}
 
-	query := "SELECT  title,content FROM lists LIMIT $1 OFFSET $2" // +select id
+	query := "SELECT  title FROM lists LIMIT $1 OFFSET $2" // +select id
 
 	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
@@ -41,10 +46,10 @@ func (r *blogRepository) GetAllBlogs(ctx context.Context, limit, offset int) ([]
 	}
 	defer rows.Close()
 
-	var lists []model.ListResponse
+	lists := []model.ListResponse{}
 	for rows.Next() {
 		var list model.ListResponse
-		if err := rows.Scan(&list.Title, &list.Content); err != nil {
+		if err := rows.Scan(&list.Title); err != nil {
 			return nil, model.Meta{}, err
 		}
 		lists = append(lists, list)
@@ -82,16 +87,12 @@ func (r *blogRepository) CounterUserBlog(userID int) (int, error) {
 	return articlesCount, err
 }
 
-func (r *blogRepository) FindBlog(ctx context.Context, title string) (model.FindList, error) {
+func (r *blogRepository) FindBlog(ctx context.Context, id int) (model.FindList, error) {
 	query := `
-        SELECT l.id, l.user_id, u.name, l.title, l.content
-        FROM lists AS l
-        JOIN users AS u ON l.user_id = u.id
-        WHERE l.title = $1
+        SELECT id,content FROM lists WHERE id = $1
     `
-
 	var list model.FindList
-	err := r.db.QueryRowContext(ctx, query, title).Scan(&list.ID, &list.UserID, &list.Name, &list.Title, &list.Content)
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&list.ID, &list.Content)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return list, fmt.Errorf("article not found")
@@ -101,8 +102,3 @@ func (r *blogRepository) FindBlog(ctx context.Context, title string) (model.Find
 
 	return list, nil
 }
-
-// // не знаю нужно или нет, думаю надо, так как ...
-// type userDB struct {
-// 	DB *sql.DB
-// }

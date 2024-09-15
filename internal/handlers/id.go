@@ -106,8 +106,6 @@ func (h *IDHandler) handleDelID(ctx context.Context, w http.ResponseWriter, r *h
 }
 
 // NewBlogHandler returns a new instance of BlogHandler.
-func NewBlogHandler(s blog.ListRepository, t blog.IDRepository) (*BlogHandler, *IDHandler) {
-	return &BlogHandler{Service: s}, &IDHandler{IDProvider: t}
+func NewBlogHandler(s blog.ListRepository) *BlogHandler {
+	return &BlogHandler{Service: s}
 }
-
-// BlogListHandler handles the /blog/list endpoint.

@@ -3,13 +3,11 @@ package model
 // здесь опишу переменные связанные с  ответом  на вопрос
 
 type ListResponse struct {
-	Title   string `json:"title,omitempty"`
-	Content string `json:"content,omitempty"`
+	Title string `json:"title,omitempty"`
 }
 
 type FindListResponse struct {
-	Name    string `json:"name"`
-	Title   string `json:"title,omitempty"`
+	Id      int    `json:"id"`
 	Content string `json:"content,omitempty"`
 }
 

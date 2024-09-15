@@ -29,7 +29,7 @@
 # CMD migrate -verbose -path /app/migration -database 'postgres://postgres:postgres@db:5432/postgres?sslmode=disable' up && ./cmd/main
 # migrate to RUN 
 
-FROM golang:1.20-alpine
+FROM golang:1.23-alpine
 
 # Устанавливаем рабочую директорию внутри контейнера
 WORKDIR /app
@@ -45,7 +45,9 @@ COPY . .
 
 # Устанавливаем утилиту migrate с поддержкой PostgreSQL
 RUN apk add --no-cache ca-certificates && \
-    go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+    go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.15.2
+# go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest   
+    # change version @latest
 
 # Копируем миграции в контейнер
 COPY ./migration /app/migration

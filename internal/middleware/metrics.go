@@ -39,5 +39,7 @@ func MetricsMiddleware(next http.Handler) http.Handler {
 
 		metrics.IncRequestCounter(status)
 		metrics.ObserveRequestDuration(duration)
+		metrics.ObserveCacheHit(duration)
+		metrics.ObserveCacheMiss(duration)
 	})
 }

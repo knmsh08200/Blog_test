@@ -15,8 +15,5 @@ type ID struct {
 
 type FindList struct {
 	ID      int
-	Name    string
-	UserID  int
-	Title   string
 	Content string
 }

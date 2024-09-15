@@ -22,5 +22,9 @@ CREATE TABLE lists  (
     --     FOREIGN KEY(user_id) 
     --     REFERENCES users(id)
 );
+CREATE TABLE bad_words (
+    id serial PRIMARY KEY
+    words TEXT,
+);
 
 INSERT INTO users (id,name) VALUES (1,'IVANOV');

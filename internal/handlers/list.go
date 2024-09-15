@@ -46,16 +46,23 @@ func (h *BlogHandler) BlogListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BlogHandler) handleFindList(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	title := r.URL.Query().Get("title")
+	idQuery := strings.TrimPrefix(r.URL.Path, "/blog/list/")
 
-	fmt.Println(title)
+	id, err := strconv.Atoi(idQuery)
+	if err != nil {
+		http.Error(w, "Error fetching data", http.StatusBadRequest)
+		log.Printf("Error fetching ID of blog:%v", err)
+	}
 
-	if title == "" {
+	fmt.Println(id)
+
+	if id == 0 {
 		http.Error(w, "Title query parameter is required", http.StatusBadRequest)
 		return
 	}
 
-	article, err := h.Service.FindBlog(ctx, title)
+	article, err := h.Service.FindBlog(ctx, id)
+
 	if err != nil {
 		log.Printf("Error fetching blogs: %v", err)
 		http.Error(w, "Error fetching data", http.StatusInternalServerError)

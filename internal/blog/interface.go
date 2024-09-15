@@ -10,7 +10,7 @@ type ListRepository interface {
 	GetAllBlogs(ctx context.Context, limit, offset int) ([]model.ListResponse, model.Meta, error)
 	CreateBlog(ctx context.Context, list model.List) (int, error)
 	DeleteBlog(ctx context.Context, d int) (int64, error) // работа с бд
-	FindBlog(ctx context.Context, title string) (model.FindList, error)
+	FindBlog(ctx context.Context, id int) (model.FindList, error)
 	CounterUserBlog(userID int) (int, error)
 }
 

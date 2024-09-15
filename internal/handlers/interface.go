@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-type BlogMTVYHandlers interface { // где это .... используется
+type BlogMTVYHandlers interface {
 	BlogListHandler(w http.ResponseWriter, r *http.Request)
 	BlogCounterHandler(w http.ResponseWriter, r *http.Request)
 	BlogFindListHandler(w http.ResponseWriter, r *http.Request)
